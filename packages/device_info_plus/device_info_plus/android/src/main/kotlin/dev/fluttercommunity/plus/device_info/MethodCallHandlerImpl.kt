@@ -11,6 +11,8 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import kotlin.collections.HashMap
+import android.util.Log
+import java.lang.reflect.Method
 
 /**
  * The implementation of [MethodChannel.MethodCallHandler] for the plugin. Responsible for
@@ -65,20 +67,41 @@ internal class MethodCallHandlerImpl(
             version["sdkInt"] = Build.VERSION.SDK_INT
             build["version"] = version
             build["isLowRamDevice"] = activityManager.isLowRamDevice
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                build["serialNumber"] = try {
-                    Build.getSerial()
-                } catch (ex: SecurityException) {
-                    Build.UNKNOWN
-                }
-            } else {
-                @Suppress("DEPRECATION")
-                build["serialNumber"] = Build.SERIAL
-            }
+            build["serialNumber"] = getSN()
 
             result.success(build)
         } else {
             result.notImplemented()
+        }
+    }
+
+    private fun getSN(): String {
+        return when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                getSystemProperty("ro.sunmi.serial")
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                try {
+                    Build.getSerial()
+                } catch (e: SecurityException) {
+                    Log.e("DeviceInfo", "Unable to get serial: ${e.message}")
+                    Build.UNKNOWN
+                }
+            }
+            else -> {
+                getSystemProperty("ro.serialno")
+            }
+        }
+    }
+
+    private fun getSystemProperty(key: String): String {
+        return try {
+            val c = Class.forName("android.os.SystemProperties")
+            val get: Method = c.getMethod("get", String::class.java)
+            get.invoke(c, key) as String
+        } catch (e: Exception) {
+            Log.e("DeviceInfo", "Failed to get system property: ${e.message}")
+            ""
         }
     }
 

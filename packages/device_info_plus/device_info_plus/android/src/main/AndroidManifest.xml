@@ -1,2 +1,4 @@
-<manifest package="dev.fluttercommunity.plus.device_info">
+<manifest package="dev.fluttercommunity.plus.device_info"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
 </manifest>
